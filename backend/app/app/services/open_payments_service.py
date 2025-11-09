@@ -162,6 +162,14 @@ class OpenPaymentsService:
         grant_id = ULID()
         redirect_uri = f"{redirect_uri_base}{grant_id}"
 
+        # Create client with buyer credentials to request grant on their wallet
+        buyer_client = OpenPaymentsClient(
+            keyid=settings.MIGRANTE_KEY_ID,
+            private_key=settings.MIGRANTE_PRIVATE_KEY,
+            client_wallet_address=self.buyer,
+            http_client=self.http_client,
+        )
+
         # Request an interactive grant with limits for recurring payments
         grant_request = GrantRequest(
             **dict(
@@ -186,7 +194,7 @@ class OpenPaymentsService:
                         ),
                     ],
                 ),
-                client=str(self.seller_wallet.id),
+                client=str(self.buyer_wallet.id),
                 interact=dict(
                     start=["redirect"],
                     finish=dict(
@@ -198,8 +206,8 @@ class OpenPaymentsService:
             )
         )
 
-        # Request the interactive endpoint
-        interactive_response = self.client.grants.post_grant_request(
+        # Request the interactive endpoint using buyer's client
+        interactive_response = buyer_client.grants.post_grant_request(
             grant_request=grant_request, auth_server_endpoint=str(self.buyer_wallet.authServer)
         )
 
@@ -246,8 +254,16 @@ class OpenPaymentsService:
         ):
             raise ValueError(f"Hash validation failed for grant {grant_id}")
 
+        # Create buyer client for grant continuation
+        buyer_client = OpenPaymentsClient(
+            keyid=settings.MIGRANTE_KEY_ID,
+            private_key=settings.MIGRANTE_PRIVATE_KEY,
+            client_wallet_address=pending_data["sender_wallet"],
+            http_client=self.http_client,
+        )
+
         # Request grant continuation
-        grant_continuation = self.client.grants.post_grant_continuation_request(
+        grant_continuation = buyer_client.grants.post_grant_continuation_request(
             interact_ref=InteractRef(**dict(interact_ref=interact_ref)),
             continue_uri=str(pending_data["continue_uri"]),
             access_token=pending_data["continue_id"],
@@ -330,16 +346,24 @@ class OpenPaymentsService:
         incoming_grant_dict = incoming_grant.model_dump(exclude_unset=True, mode="json")
         incoming_access_token = incoming_grant_dict.get("access_token", {}).get("value")
 
-        # Create incoming payment
+        # Create incoming payment with fixed receiving amount
+        # According to Open Payments recurring subscription pattern:
+        # 1. Create incoming payment with the amount the receiver expects (in their currency)
+        # 2. Create quote to determine how much sender will be debited
+        # 3. Create outgoing payment using the recurring grant
+        #
+        # For cross-currency: USD -> MXN
+        # Estimate exchange rate: ~20 MXN/USD
+        # $10 USD (1000 cents) -> ~$200 MXN (20000 centavos)
+        estimated_receive_amount_mxn = str(int(grant.debit_amount_value) * 20)
+
         incoming_payment = IncomingPaymentRequest(
-            **dict(
-                walletAddress=str(receiver_wallet.id),
-                incomingAmount=dict(
-                    value=grant.debit_amount_value,
-                    assetCode=grant.debit_amount_asset_code,
-                    assetScale=grant.debit_amount_asset_scale,
-                ),
-            )
+            walletAddress=str(receiver_wallet.id),
+            incomingAmount=dict(
+                value=estimated_receive_amount_mxn,
+                assetCode=receiver_wallet.assetCode.root,
+                assetScale=receiver_wallet.assetScale.root,
+            ),
         )
         incoming_payment_response = receiver_client.incoming_payments.post_create_payment(
             payment=incoming_payment,
@@ -348,6 +372,11 @@ class OpenPaymentsService:
         )
 
         # Request a quote from the sender's wallet
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[DEBUG] grant.sender_wallet: {grant.sender_wallet}")
+        logger.error(f"[DEBUG] grant.receiver_wallet: {grant.receiver_wallet}")
+
         sender_client = OpenPaymentsClient(
             keyid=settings.MIGRANTE_KEY_ID,
             private_key=settings.MIGRANTE_PRIVATE_KEY,
@@ -356,6 +385,8 @@ class OpenPaymentsService:
         )
 
         sender_wallet = sender_client.wallet.get_wallet_address(grant.sender_wallet)
+        logger.error(f"[DEBUG] sender_wallet.id: {sender_wallet.id}")
+        logger.error(f"[DEBUG] sender_wallet.resourceServer: {sender_wallet.resourceServer}")
 
         quote_grant = sender_client.grants.post_grant_request(
             grant_request=GrantRequest(

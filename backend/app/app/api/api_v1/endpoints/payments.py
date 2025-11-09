@@ -63,7 +63,7 @@ async def start_recurring_payment(request: RecurringPaymentStartRequest):
             redirect_uri_base=f"{service.redirect_uri}",
         )
 
-        return RecurringPaymentStartResponse(redirect_url=redirect_url, grant_id=grant_id)
+        return RecurringPaymentStartResponse(redirect_url=str(redirect_url), grant_id=grant_id)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to start recurring payment flow: {str(e)}")
@@ -184,7 +184,7 @@ async def start_one_time_purchase(request: OneTimePurchaseStartRequest):
         redirect_url, pending_transaction = service.get_purchase_endpoint(amount=request.amount)
 
         return OneTimePurchaseStartResponse(
-            redirect_url=redirect_url,
+            redirect_url=str(redirect_url),
             transaction_id=pending_transaction.id,
         )
 
