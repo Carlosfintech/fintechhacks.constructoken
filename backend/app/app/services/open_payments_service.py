@@ -566,14 +566,156 @@ class OpenPaymentsService:
         return outgoing_payment
 
 
+    ###################################################################################################
+    # FASE I: ONE-TIME MIGRANTE PAYMENT (MIGRANTE USD -> FINSUS MXN)
+    ###################################################################################################
+
+    def get_migrante_payment_endpoint(self, *, amount: int | str) -> tuple[str, PendingIncomingPaymentTransaction]:
+        """
+        Start the one-time payment flow for MIGRANTE -> FINSUS (Fase I).
+        
+        Same pattern as get_purchase_endpoint but for MIGRANTE (USD) -> FINSUS (MXN).
+        
+        Returns:
+            Tuple of (redirect_url, pending_transaction)
+        """
+        if isinstance(amount, int):
+            amount = str(amount)
+
+        # Create pending transaction
+        pending_payment = PendingIncomingPaymentTransaction(
+            **{"id": ULID(), "seller": self.seller_wallet, "buyer": self.buyer_wallet}
+        )
+        redirect_uri = f"{self.redirect_uri}{pending_payment.id}"
+
+        # 1. Request incoming payment grant for FINSUS (seller/receiver)
+        incoming_payment_response = self.request_incoming_payment(amount=amount)
+        pending_payment.incoming_payment_id = incoming_payment_response.id
+
+        # 2. Request quote grant for MIGRANTE (buyer/sender)
+        quote_response = self.request_quote(incoming_payment_id=incoming_payment_response.id)
+        pending_payment.quote_id = quote_response.id
+
+        # 3. Request an interactive payment endpoint for MIGRANTE
+        grant_request = GrantRequest(
+            **dict(
+                access_token=dict(
+                    access=[
+                        dict(
+                            identifier=str(self.buyer_wallet.id),
+                            type="outgoing-payment",
+                            actions=["create", "read", "read-all", "list", "list-all"],
+                            limits=dict(
+                                debitAmount=dict(
+                                    assetCode=quote_response.debitAmount.assetCode.root,
+                                    assetScale=quote_response.debitAmount.assetScale.root,
+                                    value=quote_response.debitAmount.value,
+                                ),
+                            ),
+                        ),
+                    ],
+                ),
+                client=str(self.seller_wallet.id),
+                interact=dict(
+                    start=["redirect"],
+                    finish=dict(
+                        method="redirect",
+                        uri=redirect_uri,
+                        nonce=str(pending_payment.id),
+                    ),
+                ),
+            )
+        )
+
+        # Request the interactive endpoint
+        interactive_response = self.client.grants.post_grant_request(
+            grant_request=grant_request, auth_server_endpoint=str(self.buyer_wallet.authServer)
+        )
+
+        pending_payment.interactive_redirect = interactive_response.root.interact.redirect
+        pending_payment.finish_id = interactive_response.root.interact.finish
+        pending_payment.continue_id = interactive_response.root.cont.access_token.value
+        pending_payment.continue_url = interactive_response.root.cont.uri
+
+        # Store pending transaction
+        pending_purchase_transactions[str(pending_payment.id)] = pending_payment
+
+        return interactive_response.root.interact.redirect, pending_payment
+
+    def complete_migrante_payment(
+        self, *, transaction_id: ULID, interact_ref: str, received_hash: str
+    ) -> OutgoingPayment:
+        """
+        Complete the MIGRANTE -> FINSUS payment after user authorization (Fase I).
+        
+        Same pattern as complete_payment.
+        
+        Returns:
+            OutgoingPayment object
+        """
+        transaction_id_str = str(transaction_id)
+
+        if transaction_id_str not in pending_purchase_transactions:
+            raise ValueError(f"Transaction {transaction_id} not found in pending transactions")
+
+        pending_payment = pending_purchase_transactions[transaction_id_str]
+
+        # Validate the interactive response hash
+        if not paymentsparser.verify_response_hash(
+            incoming_payment_id=str(pending_payment.id),
+            finish_id=pending_payment.finish_id,
+            interact_ref=interact_ref,
+            auth_server_url=str(pending_payment.buyer.authServer),
+            received_hash=received_hash,
+        ):
+            raise ValueError(f"Hash invalid for pending payment `{pending_payment.incoming_payment_id}`")
+
+        # Request a grant continuation
+        grant_request = self.client.grants.post_grant_continuation_request(
+            interact_ref=InteractRef(**dict(interact_ref=interact_ref)),
+            continue_uri=str(pending_payment.continue_url),
+            access_token=pending_payment.continue_id,
+        )
+        access_token = grant_request.access_token.value
+
+        # Create an outgoing payment from MIGRANTE
+        outgoing_payment_request = OutgoingPaymentRequest(
+            **dict(walletAddress=str(pending_payment.buyer.id), quoteId=pending_payment.quote_id, metadata={})
+        )
+        outgoing_payment = self.client.outgoing_payments.post_create_payment(
+            payment=outgoing_payment_request,
+            resource_server_endpoint=str(pending_payment.buyer.resourceServer),
+            access_token=access_token,
+        )
+
+        # Clean up pending transaction
+        del pending_purchase_transactions[transaction_id_str]
+
+        return outgoing_payment
+
+
 ###################################################################################################
 # HELPER FUNCTIONS FOR CREATING SERVICE INSTANCES
 ###################################################################################################
 
 
+def create_migrante_payment_service() -> OpenPaymentsService:
+    """
+    Create service for one-time MIGRANTE payments (MIGRANTE -> FINSUS).
+
+    Seller = FINSUS (receiver), Buyer = MIGRANTE (sender)
+    USD -> MXN conversion
+    """
+    return OpenPaymentsService(
+        seller=get_finsus_wallet(),
+        buyer=settings.MIGRANTE_WALLET_ADDRESS,
+        redirect_uri=f"{settings.DEFAULT_REDIRECT_AFTER_AUTH}migrante/",
+    )
+
+
 def create_recurring_payment_service() -> OpenPaymentsService:
     """
-    Create service for recurring payments (Migrante -> FINSUS).
+    Create service for recurring payments (Migrante -> FINSUS) - LEGACY.
 
     Seller = FINSUS (receiver), Buyer = Migrante (sender)
     """

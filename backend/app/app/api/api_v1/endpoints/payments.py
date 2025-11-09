@@ -18,6 +18,7 @@ from app.schemas.payments import (
 )
 from app.services.open_payments_service import (
     create_recurring_payment_service,
+    create_migrante_payment_service,
     create_purchase_service,
 )
 
@@ -149,6 +150,91 @@ async def trigger_recurring_payment(request: RecurringPaymentTriggerRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to execute recurring payment: {str(e)}")
+
+
+###################################################################################################
+# FASE I (NEW): ONE-TIME MIGRANTE PAYMENT ENDPOINTS (USD -> MXN)
+###################################################################################################
+
+
+@router.post("/migrante/start", response_model=OneTimePurchaseStartResponse)
+async def start_migrante_payment(request: OneTimePurchaseStartRequest):
+    """
+    Start the one-time payment flow for MIGRANTE -> FINSUS (Fase I).
+
+    This initiates the process for the Migrante to send a one-time payment
+    from their USD wallet to their FINSUS MXN account.
+
+    Flow:
+    1. Creates an incoming payment on the FINSUS wallet (MXN)
+    2. Creates a quote for the payment (USD -> MXN conversion)
+    3. Requests an interactive outgoing payment grant from MIGRANTE wallet
+    4. Returns redirect URL for user authorization
+    5. Payment completes automatically after authorization
+
+    Example:
+        POST /payments/migrante/start
+        {
+            "amount": "1500"
+        }
+
+    The amount should be in the smallest unit of MXN (e.g., 1500 = $15.00 MXN)
+    """
+    try:
+        service = create_migrante_payment_service()
+
+        redirect_url, pending_transaction = service.get_migrante_payment_endpoint(amount=request.amount)
+
+        return OneTimePurchaseStartResponse(
+            redirect_url=str(redirect_url),
+            transaction_id=pending_transaction.id,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start migrante payment flow: {str(e)}")
+
+
+@router.get("/migrante/callback", response_model=OneTimePurchaseCallbackResponse)
+async def migrante_payment_callback(
+    interact_ref: str = Query(..., description="Interaction reference from auth server"),
+    hash: str = Query(..., description="Hash for verification"),
+    transaction_id: str = Query(..., description="Transaction ID from the path parameter"),
+):
+    """
+    Handle the callback after user authorizes MIGRANTE payment.
+
+    This endpoint is called by the authorization server after the user approves
+    the payment. The payment is completed automatically.
+
+    Query Parameters:
+    - interact_ref: The interaction reference from the auth server
+    - hash: Hash to verify the response integrity
+    - transaction_id: ID of the transaction (embedded in the redirect URI)
+
+    Returns:
+        Success/failure response with payment details
+    """
+    try:
+        # Parse transaction_id from the last part of the redirect URI
+        transaction_ulid = ULID.from_str(transaction_id)
+
+        service = create_migrante_payment_service()
+
+        outgoing_payment = service.complete_migrante_payment(
+            transaction_id=transaction_ulid, interact_ref=interact_ref, received_hash=hash
+        )
+
+        return OneTimePurchaseCallbackResponse(
+            success=True,
+            message="Purchase completed successfully",
+            transaction_id=transaction_ulid,
+            outgoing_payment_id=str(outgoing_payment.id),
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to complete migrante payment: {str(e)}")
 
 
 ###################################################################################################
