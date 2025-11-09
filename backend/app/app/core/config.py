@@ -94,10 +94,26 @@ class Settings(BaseSettings):
 
     # OPENPAYMENTS SETTINGS
     DEFAULT_REDIRECT_AFTER_AUTH: str = "http://localhost:3000/fulfil/"
-    TEST_SELLER_WALLET: str
-    TEST_SELLER_KEY: str
-    TEST_SELLER_KEY_ID: str
-    TEST_BUYER_WALLET: str
+    TEST_SELLER_WALLET: str = ""
+    TEST_SELLER_KEY: str = ""
+    TEST_SELLER_KEY_ID: str = ""
+    TEST_BUYER_WALLET: str = ""
+
+    # CONSTRUCTOKEN HACKATHON - WALLET CREDENTIALS
+    # Migrante Wallet (Pancho - USD)
+    MIGRANTE_WALLET_ADDRESS: str = "https://ilp.interledger-test.dev/pancho"
+    MIGRANTE_KEY_ID: str = "194018ce-1d8d-4ecd-b405-e564002d2c83"
+    MIGRANTE_PRIVATE_KEY: str = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFUT00PZB1EmHUBtHq6Ozco78cves6pU5ebS+2oG3L1N\n-----END PRIVATE KEY-----"
+
+    # FINSUS Wallet (Destinatario - MXN)
+    FINSUS_WALLET_ADDRESS: str = "https://ilp.interledger-test.dev/destinatario"
+    FINSUS_KEY_ID: str = "cbb4e478-26df-4eeb-9c35-3b39a77f8ce7"
+    FINSUS_PRIVATE_KEY: str = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIFdh5TrEu01agcHpMZ8uvODkjLPsWV5NMDF4r4POkp1w\n-----END PRIVATE KEY-----"
+
+    # Merchant Wallet (Materiales - MXN)
+    MERCHANT_WALLET_ADDRESS: str = "https://ilp.interledger-test.dev/merchant"
+    MERCHANT_KEY_ID: str = "736d4945-29ab-4a81-a566-be246bfb827d"
+    MERCHANT_PRIVATE_KEY: str = "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIK2wSyNl9KdWjr9NUxD4YqIkLLM7XKN/pctWiMrGgE9E\n-----END PRIVATE KEY-----"
 
     # NODEINFO 2.1
     SOFTWARE_NAME: str = "hop-sauna"

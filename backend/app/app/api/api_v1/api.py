@@ -31,6 +31,7 @@ from app.api.api_v1.endpoints import (
     openpayments,
     generate,
     merchant,
+    payments,
 )
 
 api_router = APIRouter()
@@ -41,6 +42,7 @@ api_router.include_router(openpayments.router, prefix="/openpayments", tags=["op
 api_router.include_router(merchant.router, prefix="/merchant", tags=["merchant"])
 api_router.include_router(proxy.router, prefix="/proxy", tags=["proxy"])
 api_router.include_router(generate.router, prefix="/generate", tags=["generate"])
+api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 
 root_router = APIRouter()
 root_router.include_router(oauth.router, prefix="/auth", tags=["oauth"])
