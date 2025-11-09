@@ -21,7 +21,55 @@ import type { IKeyable, IMsg } from "@/interfaces"
 import { apiCore } from "./core"
 
 export const apiOpenPayments = {
-  // ORDER MANAGEMENT
+  // CASO 1: MIGRANTE -> FINSUS (USD -> MXN)
+  async startMigrantePayment(amount: string) {
+    return await useFetch<{ redirect_url: string; transaction_id: string }>(
+      `${apiCore.url()}/v1/payments/migrante/start`,
+      {
+        method: "POST",
+        body: { amount },
+      }
+    )
+  },
+  async completeMigrantePayment(
+    transaction_id: string,
+    hash: string,
+    interact_ref: string
+  ) {
+    return await useFetch<IMsg>(
+      `${apiCore.url()}/v1/payments/migrante/callback`,
+      {
+        method: "GET",
+        query: { transaction_id, hash, interact_ref },
+      }
+    )
+  },
+
+  // CASO 2: FINSUS -> MERCHANT (MXN -> MXN)
+  async startPurchasePayment(amount: string) {
+    return await useFetch<{ redirect_url: string; transaction_id: string }>(
+      `${apiCore.url()}/v1/payments/purchase/start`,
+      {
+        method: "POST",
+        body: { amount },
+      }
+    )
+  },
+  async completePurchasePayment(
+    transaction_id: string,
+    hash: string,
+    interact_ref: string
+  ) {
+    return await useFetch<IMsg>(
+      `${apiCore.url()}/v1/payments/purchase/callback`,
+      {
+        method: "GET",
+        query: { transaction_id, hash, interact_ref },
+      }
+    )
+  },
+
+  // ORDER MANAGEMENT (legacy)
   async orderProduct(
     key: string,
     payload: string,
