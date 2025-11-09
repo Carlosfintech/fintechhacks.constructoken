@@ -1,0 +1,123 @@
+/*
+  Hop Sauna
+  SPDX-FileCopyrightText: Copyright (C) Whythawk and Hop Sauna Authors ask@whythawk.com
+  SPDX-License-Identifier: AGPL-3.0-or-later
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http:www.gnu.org/licenses/>.
+*/
+
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/aspect-ratio";
+
+@theme {
+  --color-teal-50: #f0fdfa;
+  --color-teal-100: #ccfbf1;
+  --color-teal-200: #99f6e4;
+  --color-teal-300: #5eead4;
+  --color-teal-400: #2dd4bf;
+  --color-teal-500: #14b8a6;
+  --color-teal-600: #0d9488;
+  --color-teal-700: #0f766e;
+  --color-teal-800: #115e59;
+  --color-teal-900: #134e4a;
+  --color-teal-950: #042f2e;
+
+  --color-cyan-50: #ecfeff;
+  --color-cyan-100: #cffafe;
+  --color-cyan-200: #a5f3fc;
+  --color-cyan-300: #67e8f9;
+  --color-cyan-400: #22d3ee;
+  --color-cyan-500: #06b6d4;
+  --color-cyan-600: #0891b2;
+  --color-cyan-700: #0e7490;
+  --color-cyan-800: #155e75;
+  --color-cyan-900: #164e63;
+  --color-cyan-950: #083344;
+
+  --color-hops-50: #f5f8f5;
+  --color-hops-100: #e8f0e8;
+  --color-hops-200: #d1e1d1;
+  --color-hops-300: #acc9ac;
+  --color-hops-400: #82a880;
+  --color-hops-500: #588157;
+  --color-hops-600: #4a7049;
+  --color-hops-700: #3c593c;
+  --color-hops-800: #334833;
+  --color-hops-900: #2b3c2b;
+  --color-hops-950: #141f15;
+
+  --color-autumn-50: #fdf6ef;
+  --color-autumn-100: #fae9da;
+  --color-autumn-200: #f4d0b4;
+  --color-autumn-300: #f0bf9c;
+  --color-autumn-400: #e48653;
+  --color-autumn-500: #de6831;
+  --color-autumn-600: #cf5027;
+  --color-autumn-700: #ac3d22;
+  --color-autumn-800: #8a3222;
+  --color-autumn-900: #6f2b1f;
+  --color-autumn-950: #3c140e;
+
+  --color-pelorous-50: #effbfc;
+  --color-pelorous-100: #d6f3f7;
+  --color-pelorous-200: #b2e7ef;
+  --color-pelorous-300: #7dd3e3;
+  --color-pelorous-400: #40b8d0;
+  --color-pelorous-500: #27a5c1;
+  --color-pelorous-600: #217e99;
+  --color-pelorous-700: #21667d;
+  --color-pelorous-800: #235567;
+  --color-pelorous-900: #214758;
+  --color-pelorous-950: #112d3b;
+
+  --color-thunderbird-50: #fff1f1;
+  --color-thunderbird-100: #ffe0e0;
+  --color-thunderbird-200: #ffc6c7;
+  --color-thunderbird-300: #ff9e9f;
+  --color-thunderbird-400: #ff6668;
+  --color-thunderbird-500: #fd3638;
+  --color-thunderbird-600: #eb1719;
+  --color-thunderbird-700: #ce1012;
+  --color-thunderbird-800: #a31113;
+  --color-thunderbird-900: #871516;
+  --color-thunderbird-950: #4a0506;
+
+
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+html,body, #__nuxt, #__layout{
+    height:100%!important;
+    width: 100%!important;
+  }

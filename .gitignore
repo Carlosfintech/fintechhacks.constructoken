@@ -39,6 +39,9 @@ venv.bak/
 .env
 .env.local
 
+# Private keys (NEVER commit these!)
+keys.json
+
 # Database
 *.db
 *.sqlite
@@ -61,41 +64,4 @@ alembic/versions/
 *.tmp
 temp/
 tmp/
-
-# Screenshots and media (if generated during demo)
-screenshots/
-*.png
-*.jpg
-*.jpeg
-*.gif
-!docs/*.png
-!docs/*.jpg
-
-# Backup files
-*.bak
-*.backup
-*.sql.gz
-*.dump
-
-# macOS specific
-.AppleDouble
-.LSOverride
-Icon
-._*
-
-# Python type checking
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pyre/
-.pytype/
-
-# Jupyter Notebooks (if used)
-.ipynb_checkpoints/
-*.ipynb
-
-# Local scripts (if you create test scripts)
-test_local.py
-local_*.py
-scratch*.py
 

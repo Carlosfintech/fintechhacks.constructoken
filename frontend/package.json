@@ -1,0 +1,42 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "start": "node .output/server/index.mjs",
+    "preview": "nuxt preview"
+  },
+  "dependencies": {
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "2.2.0",
+    "@nuxt/content": "^3.2.2",
+    "@nuxtjs/i18n": "^9.2.1",
+    "@nuxtjs/robots": "^5.2.4",
+    "@pinia/nuxt": "^0.10.1",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/vite": "^4.0.8",
+    "@vee-validate/i18n": "^4.15.0",
+    "@vee-validate/rules": "^4.15.0",
+    "@vite-pwa/assets-generator": "^0.2.6",
+    "@vite-pwa/nuxt": "^0.10.6",
+    "activitypub-types": "^1.1.0",
+    "better-sqlite3": "^12.4.1",
+    "browser-fs-access": "^0.38.0",
+    "nuxt": "~3.15",
+    "pinia": "^3.0.1",
+    "pinia-plugin-persistedstate": "^4.2.0",
+    "postcss": "^8.5.3",
+    "qrcode.vue": "^3.6.0",
+    "tailwindcss": "^4.0.8",
+    "vee-validate": "^4.15.0",
+    "vue-infinite-loading": "^2.4.5"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "1.1.0",
+    "eslint": "9.21.0"
+  },
+  "packageManager": "yarn@1.22.21+sha1.1959a18351b811cdeedbd484a8f86c3cc3bbaf72"
+}

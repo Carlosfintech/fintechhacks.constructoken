@@ -8,6 +8,10 @@ from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 import json
 import logging
+from .crypto_utils import key_manager
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -71,49 +75,54 @@ class OpenPaymentsClient:
                 if iterations:
                     access_request["limits"]["iterations"] = iterations
             
-            # Build the grant request
+            # Build the grant request - simplified format based on hop-sauna reference
+            # Reference: https://codeberg.org/whythawk/hop-sauna
             grant_request = {
                 "access_token": {
                     "access": [access_request]
                 },
-                "client": {
-                    "display": {
-                        "name": "Constructoken",
-                        "uri": "https://constructoken.com"
-                    }
-                },
-                "interact": {
-                    "start": ["redirect"],
-                    "finish": {
-                        "method": "redirect",
-                        "uri": "https://constructoken.com/callback",
-                        "nonce": self._generate_nonce()
-                    }
-                }
+                "client": wallet_address  # Just the wallet address string
+            }
+            
+            # Convert to JSON string for signing
+            body = json.dumps(grant_request)
+            
+            # Create HTTP signature headers
+            auth_url = f"{auth_server}/"
+            signature_headers = key_manager.create_http_signature_headers(
+                wallet_address=wallet_address,
+                method="POST",
+                url=auth_url,
+                body=body
+            )
+            
+            # Combine headers
+            headers = {
+                "Content-Type": "application/json",
+                **signature_headers
             }
             
             logger.info(f"Requesting grant from {auth_server}")
-            logger.info(f"📤 Grant Request Body: {json.dumps(grant_request, indent=2)}")
+            if signature_headers:
+                logger.info(f"Request signed with key ID: {signature_headers.get('Signature-Input', '')[:50]}...")
             
             response = await self.client.post(
-                f"{auth_server}/",
-                json=grant_request,
-                headers={"Content-Type": "application/json"}
+                auth_url,
+                content=body,  # Use content instead of json to send pre-serialized body
+                headers=headers
             )
             
-            # Log response details before raising error
-            logger.info(f"📥 Response Status: {response.status_code}")
-            logger.info(f"📥 Response Headers: {dict(response.headers)}")
-            try:
-                response_body = response.json()
-                logger.info(f"📥 Response Body: {json.dumps(response_body, indent=2)}")
-            except:
-                logger.info(f"📥 Response Text: {response.text}")
+            # Log full request/response for debugging
+            logger.info(f"Request headers: {headers}")
+            logger.info(f"Request body: {body}")
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            logger.info(f"Response body: {response.text}")
             
             response.raise_for_status()
             
             grant_response = response.json()
-            logger.info(f"✅ Grant response: {grant_response}")
+            logger.info(f"Grant response: {grant_response}")
             
             # Cache the access token if provided
             if "access_token" in grant_response:

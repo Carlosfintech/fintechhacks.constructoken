@@ -1,0 +1,20 @@
+UserAgent: CCBot
+Disallow: /
+
+UserAgent: ChatGPT-User
+Disallow: /
+
+UserAgent: GPTBot
+Disallow: /
+
+UserAgent: Google-Extended
+Disallow: /
+
+UserAgent: Omgilibot
+Disallow: /
+
+UserAgent: FacebookBot
+Disallow: /
+
+UserAgent: Amazonbot
+Disallow: /
